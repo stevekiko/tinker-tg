@@ -16,6 +16,7 @@
 
 package com.tencent.tinker.build.gradle.task
 
+import com.android.SdkConstants
 import com.android.builder.internal.aapt.AaptOptions
 import com.google.common.collect.ImmutableList
 import com.tencent.tinker.build.aapt.AaptResourceCollector
@@ -30,6 +31,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.logging.LogLevel
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
@@ -260,12 +262,81 @@ public class TinkerResourceIdTask extends DefaultTask {
                 //replace . to _ for all types with the same converting rule
                 if (originalName.contains('.') || originalName.contains(':')) {
                     // only record names with '.' or ':', for sake of memory
-                    String sanitizeName = originalName.replaceAll("[.:]", "_");
+                    String sanitizeName = originalName.replaceAll("[.:]", "_")
                     realNameMap.put(sanitizeName, originalName)
                 }
             }
         }
         return realNameMap
+    }
+
+    /**
+     * Extract $ prefixed resources (nested resources) from base APK using aapt dump
+     */
+    private List<String> extractDollarPrefixedResourcesFromBaseApk() {
+        List<String> dollarResources = new ArrayList<>()
+        try {
+            String oldApkPath = project.extensions.tinkerPatch?.oldApk
+            if (oldApkPath == null || oldApkPath.isEmpty()) {
+                project.logger.warn("oldApk is not set, cannot extract \$ prefixed resources from base APK")
+                return dollarResources
+            }
+            
+            File oldApkFile = new File(oldApkPath)
+            if (!oldApkFile.exists()) {
+                project.logger.warn("oldApk file does not exist: ${oldApkPath}, cannot extract \$ prefixed resources")
+                return dollarResources
+            }
+
+            // Get aapt path
+            final String aaptPath = Compatibilities.getAAPTPath(project)
+            if (aaptPath == null || aaptPath.isEmpty()) {
+                throw new GradleException('Fail to get aapt2 path', thr)
+            }
+
+            // Use aapt2 dump resources to get all resources from base APK
+            def outputStream = new ByteArrayOutputStream()
+            def errorStream = new ByteArrayOutputStream()
+            project.exec { def execSpec ->
+                execSpec.executable "${aaptPath}"
+                execSpec.args("dump")
+                execSpec.args("resources")
+                execSpec.args("${oldApkFile.absolutePath}")
+                execSpec.standardOutput = outputStream
+                execSpec.errorOutput = errorStream
+            }
+
+            final String dumpOutput = outputStream.toString()
+            // Output example:
+            // spec resource 0x7f07009a com.tencent.mm2:drawable/$icon_filter_progress_indicator__0: flags=0x00000000
+            final String quotedAppId = Pattern.quote(applicationId)
+            final Pattern targetPattern = Pattern.compile("\\s*spec\\s+resource\\s+(0x[0-9A-Fa-f]+?)\\s+(?:${quotedAppId}:)?(\\w+)/([^\\s\\n\\r:]+):")
+            dumpOutput.eachLine { line ->
+                final Matcher matcher = targetPattern.matcher(line)
+                if (!matcher.find()) {
+                    return null
+                }
+
+                final String resourceId = matcher.group(1)
+                final String resourceType = matcher.group(2)
+                final String resourceName = matcher.group(3)
+
+                if (resourceType.equalsIgnoreCase("styleable")) {
+                    // Skip styleable type
+                    return null
+                }
+
+                if (resourceName.startsWith('$')) {
+                    dollarResources.add("${applicationId}:${resourceType}/${resourceName} = ${resourceId}")
+                    project.logger.warn("* Found \$ prefixed resource: ${applicationId}:${resourceType}/${resourceName} = ${resourceId}")
+                }
+
+                return null
+            }
+        } catch (Exception e) {
+            project.logger.error("Failed to extract \$ prefixed resources from base APK: ${e.message}", e)
+        }
+        return dollarResources
     }
 
     /**
@@ -284,14 +355,15 @@ public class TinkerResourceIdTask extends DefaultTask {
                     return
                 } else {
                     sortedLines.add("${applicationId}:${it.type}/${name} = ${it.idValue}")
-
-                    //there is a special resource type for drawable which called nested resource.
-                    //such as avd_hide_password and avd_show_password resource in support design sdk.
-                    //the nested resource is start with $, such as $avd_hide_password__0 and $avd_hide_password__1
-                    //but there is none nested resource in R.txt, so ignore it just now.
                 }
             }
         }
+        
+        // Extract $ prefixed resources (nested resources) from base APK
+        // These resources are generated by aapt2 for inline attr tags but don't appear in R.txt
+        List<String> dollarResources = extractDollarPrefixedResourcesFromBaseApk()
+        sortedLines.addAll(dollarResources)
+        
         //sort it and see the diff content conveniently
         Collections.sort(sortedLines)
         return sortedLines
@@ -344,27 +416,9 @@ public class TinkerResourceIdTask extends DefaultTask {
             return
         }
 
-        def variantData = variant.getMetaClass().getProperty(variant, 'variantData')
-        def variantScope = variantData.getScope()
-        def globalScope = variantScope.getGlobalScope()
-        def androidBuilder = globalScope.getAndroidBuilder()
-        def targetInfo = androidBuilder.getTargetInfo()
-        def buildTools = targetInfo.getBuildTools()
-        Map paths = buildTools.getMetaClass().getProperty(buildTools, "mPaths")
-        String aapt2Path = paths.get(resolveEnumValue("AAPT2", Class.forName('com.android.sdklib.BuildToolInfo$PathId')))
-
+        final String aapt2Path = Compatibilities.getAAPT2Path(project)
         if (aapt2Path == null || aapt2Path.isEmpty()) {
-            try {
-                //may be from maven, the flat magic number don't match. so we should also use the aapt2 from maven.
-                Class aapt2MavenUtilsClass = Class.forName("com.android.build.gradle.internal.res.Aapt2MavenUtils")
-                def getAapt2FromMavenMethod = aapt2MavenUtilsClass.getDeclaredMethod("getAapt2FromMaven", Class.forName("com.android.build.gradle.internal.scope.GlobalScope"))
-                getAapt2FromMavenMethod.setAccessible(true)
-                def aapt2FromMaven = getAapt2FromMavenMethod.invoke(null, globalScope)
-                //noinspection UnnecessaryQualifiedReference
-                aapt2Path = aapt2FromMaven.singleFile.toPath().resolve(com.android.SdkConstants.FN_AAPT2)
-            } catch (Throwable thr) {
-                throw new GradleException('Fail to get aapt2 path', thr)
-            }
+            throw new GradleException('Fail to get aapt2 path', thr)
         }
 
         project.logger.error("tinker get aapt2 path ${aapt2Path}")

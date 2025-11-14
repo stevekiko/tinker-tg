@@ -142,6 +142,22 @@ class Compatibilities {
         return project.tasks.findByName("collect${variant.name.capitalize()}MultiDexComponents")
     }
 
+    static def getAAPTPath(project) {
+        def buildTools = project.android.sdkDirectory.toPath()
+                .resolve("build-tools")
+                .resolve(project.android.buildToolsVersion)
+        def aaptPath = buildTools.resolve("aapt")
+        return aaptPath
+    }
+
+    static def getAAPT2Path(project) {
+        def buildTools = project.android.sdkDirectory.toPath()
+                .resolve("build-tools")
+                .resolve(project.android.buildToolsVersion)
+        def aapt2Path = buildTools.resolve("aapt2")
+        return aapt2Path
+    }
+
     static def getFieldRecursively(ownerClazz, name) {
         def currClazz = ownerClazz as Class<?>
         while (true) {
