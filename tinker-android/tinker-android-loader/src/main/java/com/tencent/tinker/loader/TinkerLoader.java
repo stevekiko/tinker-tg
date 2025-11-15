@@ -153,17 +153,7 @@ public class TinkerLoader extends AbstractTinkerLoader {
             }
 
             if (ShareTinkerInternals.isNullOrNil(version)) {
-                if (mainProcess) {
-                    ShareTinkerLog.w(TAG, "tryLoadPatchFiles:version is blank, reset patch info and skip rest loading logic");
-                    // Clear all version fields so that other process will not load patch after reboot.
-                    acquired.oldVersion = "";
-                    acquired.newVersion = "";
-                    acquired.versionToRemove = "";
-                    SharePatchInfo.rewritePatchInfoFileWithLock(patchInfoFile, acquired, patchInfoLockFile);
-                    ShareTinkerInternals.killProcessExceptMain(app);
-                } else {
-                    ShareTinkerLog.w(TAG, "tryLoadPatchFiles:version is blank, wait main process to restart");
-                }
+                ShareTinkerLog.w(TAG, "tryLoadPatchFiles:version is blank, wait main process to restart");
                 ShareIntentUtil.setIntentReturnCode(resultIntent, ShareConstants.ERROR_LOAD_PATCH_INFO_BLANK);
                 return;
             }

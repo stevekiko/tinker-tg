@@ -253,10 +253,13 @@ public class TinkerPatchService extends IntentService {
             patchResult.type = tinker.getCustomPatcher() == null ? PatchResult.PATCH_TYPE_BSDIFF : PatchResult.PATCH_TYPE_CUSTOM;
             patchResult.e = e;
 
+
+            unmarkRunning(context);
+            sIsPatchApplying.set(false);
+
             AbstractResultService.runResultService(context, patchResult, getPatchResultExtra(intent));
         } finally {
             unmarkRunning(context);
-            sIsPatchApplying.set(false);
         }
     }
 

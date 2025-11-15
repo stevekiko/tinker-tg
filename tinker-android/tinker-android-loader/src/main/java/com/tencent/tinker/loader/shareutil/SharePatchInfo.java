@@ -169,10 +169,11 @@ public class SharePatchInfo {
             if (oldVer == null || newVer == null) {
                 continue;
             }
-            //oldVer and newVer must be "" or 32 md5
+            //oldVer may be "" or 32 md5
             if ((!oldVer.equals("") && !SharePatchFileUtil.checkIfMd5Valid(oldVer))
-                    || (!newVer.equals("") && !SharePatchFileUtil.checkIfMd5Valid(newVer))) {
+                || !SharePatchFileUtil.checkIfMd5Valid(newVer)) {
                 ShareTinkerLog.w(TAG, "path info file  corrupted:" + pathInfoFile.getAbsolutePath());
+                continue;
             } else {
                 isReadPatchSuccessful = true;
             }
