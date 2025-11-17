@@ -358,8 +358,8 @@ public final class DexClassesComparator {
             Dex oldDex, Dex newDex, int oldTypeId, int newTypeId
     ) {
         if (oldTypeId != ClassDef.NO_INDEX && newTypeId != ClassDef.NO_INDEX) {
-            String oldClassDesc = oldDex.typeNames().get(oldTypeId);
-            String newClassDesc = newDex.typeNames().get(newTypeId);
+            String oldClassDesc = oldDex.typeNames().get(oldTypeId & 0xFFFF);
+            String newClassDesc = newDex.typeNames().get(newTypeId & 0xFFFF);
             if (!oldClassDesc.equals(newClassDesc)) {
                 return true;
             }
@@ -379,11 +379,8 @@ public final class DexClassesComparator {
                 return !Utils.isStringMatchesPatterns(oldClassDesc, patternsOfIgnoredRemovedClassDesc);
             }
         } else {
-            if (!(oldTypeId == ClassDef.NO_INDEX && newTypeId == ClassDef.NO_INDEX)) {
-                return true;
-            }
+            return !(oldTypeId == ClassDef.NO_INDEX && newTypeId == ClassDef.NO_INDEX);
         }
-        return false;
     }
 
     private boolean isTypeIdsChangeAffectedToReferrer(
@@ -400,9 +397,15 @@ public final class DexClassesComparator {
         int typeIdCount = oldTypeIds.length;
         for (int i = 0; i < typeIdCount; ++i) {
             if (compareNameOnly) {
-                String oldTypeName = oldDex.typeNames().get(oldTypeIds[i]);
-                String newTypeName = newDex.typeNames().get(newTypeIds[i]);
-                if (!oldTypeName.equals(newTypeName)) {
+                final int oldTypeId = oldTypeIds[i] != ClassDef.NO_INDEX ? oldTypeIds[i] & 0xFFFF : oldTypeIds[i];
+                final int newTypeId = newTypeIds[i] != ClassDef.NO_INDEX ? newTypeIds[i] & 0xFFFF : newTypeIds[i];
+                if (oldTypeId != ClassDef.NO_INDEX && newTypeId != ClassDef.NO_INDEX) {
+                    String oldTypeName = oldDex.typeNames().get(oldTypeId);
+                    String newTypeName = newDex.typeNames().get(newTypeId);
+                    if (!oldTypeName.equals(newTypeName)) {
+                        return true;
+                    }
+                } else if (oldTypeId != ClassDef.NO_INDEX || newTypeId != ClassDef.NO_INDEX) {
                     return true;
                 }
             } else {
@@ -630,9 +633,13 @@ public final class DexClassesComparator {
     }
 
     private boolean isSameClassDesc(Dex oldDex, Dex newDex, int oldTypeId, int newTypeId) {
-        String oldClassDesc = oldDex.typeNames().get(oldTypeId);
-        String newClassDesc = newDex.typeNames().get(newTypeId);
-        return oldClassDesc.equals(newClassDesc);
+        if (oldTypeId != ClassDef.NO_INDEX && newTypeId != ClassDef.NO_INDEX) {
+            final String oldClassDesc = oldDex.typeNames().get(oldTypeId & 0xFFFF);
+            final String newClassDesc = newDex.typeNames().get(newTypeId & 0xFFFF);
+            return oldClassDesc.equals(newClassDesc);
+        } else {
+            return oldTypeId == ClassDef.NO_INDEX && newTypeId == ClassDef.NO_INDEX;
+        }
     }
 
     private boolean isSameName(Dex oldDex, Dex newDex, int oldStringId, int newStringId) {
