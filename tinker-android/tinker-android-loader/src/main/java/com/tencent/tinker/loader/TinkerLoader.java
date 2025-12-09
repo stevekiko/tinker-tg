@@ -337,10 +337,6 @@ public class TinkerLoader extends AbstractTinkerLoader {
                 SharePatchInfo.rewritePatchInfoFileWithLock(patchInfoFile, patchInfo, patchInfoLockFile);
                 ShareTinkerInternals.killProcessExceptMain(app);
 
-                // Actually delete patch files.
-                String patchVersionDirFullPath = patchDirectoryPath + "/" + patchName;
-                SharePatchFileUtil.deleteDirAsync(patchVersionDirFullPath);
-
                 resultIntent.putExtra(ShareIntentUtil.INTENT_PATCH_EXCEPTION, new TinkerRuntimeException("checkSafeModeCount fail"));
                 ShareIntentUtil.setIntentReturnCode(resultIntent, ShareConstants.ERROR_LOAD_PATCH_UNCAUGHT_EXCEPTION);
                 ShareTinkerLog.w(TAG, "tryLoadPatchFiles:checkSafeModeCount fail, patch was deleted.");

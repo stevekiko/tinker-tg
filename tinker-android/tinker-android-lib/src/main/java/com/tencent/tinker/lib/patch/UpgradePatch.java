@@ -132,11 +132,6 @@ public class UpgradePatch extends AbstractPatch {
                 final String lastNewVersion = oldInfo.newVersion;
                 oldInfo.newVersion = oldInfo.oldVersion;
                 SharePatchInfo.rewritePatchInfoFileWithLock(patchInfoFile, oldInfo, patchInfoLockFile);
-
-                // Currently applied patch is not the same as last applied one and the last applied one is not loaded,
-                // so we can delete the last applied patch to avoid patch artifacts accumulating.
-                final String patchName = SharePatchFileUtil.getPatchVersionDirectory(lastNewVersion);
-                SharePatchFileUtil.deleteDir(new File(patchDirectory, patchName));
             }
             final String versionToRemove;
             if (patchMd5.equals(oldInfo.versionToRemove)) {

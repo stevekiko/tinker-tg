@@ -284,8 +284,11 @@ public class Tinker {
     /**
      * clean the patch version files, such as tinker/patch-641e634c
      *
+     * @deprecated It is unsafe, never clean patch manually.
+     *
      * @param versionName
      */
+    @Deprecated
     public void cleanPatchByVersion(String versionName) {
         if (patchDirectory == null || versionName == null) {
             return;
@@ -310,8 +313,11 @@ public class Tinker {
     /**
      * try delete the temp version files
      *
+     * @deprecated It is unsafe, never clean patch manually.
+     *
      * @param patchApk
      */
+    @Deprecated
     public void cleanPatchByPatchApk(File patchApk) {
         if (patchDirectory == null || patchApk == null || !patchApk.exists()) {
             return;
