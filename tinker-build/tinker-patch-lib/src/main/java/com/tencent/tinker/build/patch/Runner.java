@@ -63,6 +63,9 @@ public class Runner {
 
         Logger.d(mConfig.toString());
         try {
+            Logger.d("Verify resource ids are not misaligned between old/new APK...");
+            MisalignedResourceIdChecker.check(mConfig.mOldApkFile, mConfig.mNewApkFile);
+
             //gen patch
             ApkDecoder decoder = new ApkDecoder(mConfig);
             decoder.onAllPatchesStart();
