@@ -334,7 +334,11 @@ public class ResDiffPatchInternal extends BasePatchInternal {
                 try {
                     oldStream = apkFile.getInputStream(baseEntry);
                     newStream = patchZipFile.getInputStream(patchEntry);
-                    FilePatchFactory.getFilePatcher(context, useCustomPatcher).patchFast(oldStream, newStream, largeModeInfo.file);
+                    final boolean outputReadOnly = ShareTinkerInternals.isNewerOrEqualThanVersion(
+                            37, true
+                    );
+                    FilePatchFactory.getFilePatcher(context, useCustomPatcher).patchFast(
+                        oldStream, newStream, largeModeInfo.file, outputReadOnly);
                 } finally {
                     IOHelper.closeQuietly(oldStream);
                     IOHelper.closeQuietly(newStream);

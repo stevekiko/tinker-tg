@@ -184,7 +184,11 @@ public class SoDiffPatchInternal extends BasePatchInternal {
                     try {
                         oldStream = apk.getInputStream(rawApkFileEntry);
                         newStream = patch.getInputStream(patchFileEntry);
-                        FilePatchFactory.getFilePatcher(context, useCustomPatcher).patchFast(oldStream, newStream, extractedFile);
+                        final boolean outputReadOnly = ShareTinkerInternals.isNewerOrEqualThanVersion(
+                                37, true
+                        );
+                        FilePatchFactory.getFilePatcher(context, useCustomPatcher).patchFast(
+                            oldStream, newStream, extractedFile, outputReadOnly);
                     } finally {
                         IOHelper.closeQuietly(oldStream);
                         IOHelper.closeQuietly(newStream);

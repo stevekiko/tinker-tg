@@ -6,6 +6,15 @@ import java.io.InputStream;
 
 public abstract class AbstractFilePatch {
 
-    public abstract int patchFast(InputStream oldInputStream, InputStream diffInputStream, File newFile) throws IOException;
+    public int patchFast(InputStream oldInputStream, InputStream diffInputStream, File newFile) throws IOException {
+        return patchFast(oldInputStream, diffInputStream, newFile, false);
+    }
+
+    public abstract int patchFast(
+            InputStream oldInputStream,
+            InputStream diffInputStream,
+            File newFile,
+            boolean outputReadOnly
+    ) throws IOException;
 
 }
