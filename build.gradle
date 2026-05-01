@@ -24,6 +24,15 @@ allprojects {
         enabled = false
         options.setEncoding('UTF-8')
     }
+
+    // Gradle 7+ 严格 duplicates 策略 — 老 Tinker 配置在 anno module 有两份
+    // META-INF/services/javax.annotation.processing.Processor，全局 EXCLUDE 兼容
+    tasks.withType(Copy).configureEach {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+    tasks.withType(Jar).configureEach {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
 }
 
 ext {
@@ -34,8 +43,8 @@ ext {
     androidXAnnotationVersion = '1.1.0'
     javaVersion = JavaVersion.VERSION_1_8
 
-    GROUP = 'com.tencent.tinker'
-    VERSION_NAME = '1.9.15.2-fix'
+    GROUP = 'com.github.stevekiko.tinker-tg'
+    VERSION_NAME = '1.9.15.2-tg-1'
 
     POM_DESCRIPTION = 'Tinker is a hot-fix solution library for Android, it supports dex, library and resources update without reinstalling apk.'
     POM_URL = 'https://github.com/Tencent/tinker'

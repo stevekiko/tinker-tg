@@ -1,0 +1,7 @@
+# JitPack 编译配置
+# - JDK 17：Gradle 7.6.4 支持的 JDK，与 androidapp 项目一致
+# - install 任务：发布所有 sub-module artifact 到 JitPack 的 Maven 缓存
+jdk:
+  - openjdk17
+install:
+  - ./gradlew publishToMavenLocal -x test --no-daemon
